@@ -6,6 +6,7 @@ import {Autocomplete, Button, TextField} from "@mui/material";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import HabitInfo from "./HabitInfo.tsx";
+import UserListingItem from "./UserListingItem.tsx";
 
 const API = 'http://localhost:8080'
 
@@ -19,12 +20,12 @@ interface User {
     isDarkGroup: boolean;
 }
 
-interface DateData {
+export interface DateData {
     date: string;
     userHabitData: UserHabitData[];
 }
 
-interface UserHabitData {
+export interface UserHabitData {
     userName: string;
     habitDoneData: HabitDoneData[];
 }
@@ -42,7 +43,8 @@ interface HabitDoneDataInfo {
 
 
 function App() {
-    const [users, setAllUsers] = useState<User[]>([])
+    const [allUsers, setAllUsers] = useState<User[]>([])
+    const [filteredUsers, setFilteredUsers] = useState<User[]>([])
     const [dateData, setAllDateData] = useState<DateData[]>([])
     const [isDarkGroup, setIsDarkGroup] = useState(true)
     const [selectedDate, setSelectedDate] = useState<Moment>(moment())
@@ -109,7 +111,7 @@ function App() {
     };
 
     function getGroupSize(isDarkGroup: boolean, selectedGender: string) {
-        const filteredUsersByGender = users.filter(user => user.gender === selectedGender || selectedGender === "All");
+        const filteredUsersByGender = allUsers.filter(user => user.gender === selectedGender || selectedGender === "All");
         const darkGroup = filteredUsersByGender.filter(user => user.isDarkGroup);
         const lightGroup = filteredUsersByGender.filter(user => !user.isDarkGroup);
 
@@ -117,8 +119,12 @@ function App() {
     }
 
     function handleChange(showAllDates: boolean, isDarkGroup: boolean, selectedDate: Moment, selectedGender: string) {
-        showAllDates ? setInfoByGroupAllDates(getGroupSize(isDarkGroup, selectedGender), isDarkGroup, selectedGender) :
+        if (showAllDates) {
+            setInfoByGroupAllDates(getGroupSize(isDarkGroup, selectedGender), isDarkGroup, selectedGender)
+        } else {
             setInfoByGroupAndDate(getGroupSize(isDarkGroup, selectedGender), selectedDate, isDarkGroup, selectedGender)
+        }
+        setFilteredUsers(allUsers.filter(user => user.gender === selectedGender || selectedGender === "All").filter(user => user.isDarkGroup === isDarkGroup));
     }
 
     function setInfoByGroupAndDate(groupSize: number, selectedDate: Moment, isDarkGroup: boolean, selectedGender: string) {
@@ -136,7 +142,7 @@ function App() {
         }
 
         const groupFilteredUserHabitData = dateDataOfDate.userHabitData.filter(uHabitData => {
-            const user = users.find(u =>
+            const user = allUsers.find(u =>
                 u.name === uHabitData.userName &&
                 u.isDarkGroup === isDarkGroup &&
                 (selectedGender === "All" || u.gender === selectedGender)
@@ -157,7 +163,7 @@ function App() {
 
         const groupFilteredUserHabitData = dateData.flatMap(data =>
             data.userHabitData.filter(uHabitData => {
-                const user = users.find(u =>
+                const user = allUsers.find(u =>
                     u.name === uHabitData.userName &&
                     u.isDarkGroup === isDarkGroup &&
                     (selectedGender === "All" || u.gender === selectedGender)
@@ -323,6 +329,14 @@ function App() {
                         wantedToQuit={meditationWantedToQuit}
                         ignored={meditationIgnored}
                     />
+                </Box>
+                <Box>
+                    {filteredUsers.map(user =>
+                        <UserListingItem key={user.name}
+                                         name={user.name}
+                                         dateData={showAllDates ? dateData : dateData.filter(data => data.date === selectedDate.format("YYYY-MM-DD"))}
+                        />
+                    )}
                 </Box>
             </Box>
         </LocalizationProvider>
